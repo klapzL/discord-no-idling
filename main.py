@@ -4,6 +4,7 @@ import time
 from requests.sessions import Session
 
 from config import TEXT_CHANNEL_ID, TOKEN, configure_logger
+from utils import get_idle_time
 
 
 def main():
@@ -17,21 +18,23 @@ def main():
 
     session = Session()
     interval = 60 * 5
-    while True:
-        response = session.post(**data)
-        if response.status_code != 200:
-            logging.error(f"failed to send message! {response.json()}")
-        elif response.status_code == 200:
-            logging.info("message sent 'n you're alive!")
-        else:
-            logging.info("something went wrong...")
 
-        logging.info("sleeping for 5 minutes now...")
-        time.sleep(interval)
+    try:
+        while True:
+            if (idle_time := get_idle_time()) > interval:
+                response = session.post(**data)
+                if response.status_code == 200:
+                    logging.info("message sent 'n you're alive!")
+                else:
+                    logging.error(f"failed to send message! {response.json()}")
+
+            logging.info(f"{idle_time=}")
+            logging.info("sleeping...")
+            time.sleep(interval)
+
+    except KeyboardInterrupt:
+        logging.info("quitting...")
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        logging.info("quitting...")
+    main()
